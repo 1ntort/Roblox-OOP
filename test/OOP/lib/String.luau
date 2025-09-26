@@ -1,3 +1,4 @@
+--!nolint
 return function(env)
 	env({})
 
