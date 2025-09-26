@@ -10,7 +10,6 @@ return function(env)
 		["public static final Start"] = function(self)
 			local testString = "waddup"
 			
-			local test = new "String"
 			self.String = new "String"(testString)
 			print("JSON Result:", self.String.JSON())
 			self.Name = testString
