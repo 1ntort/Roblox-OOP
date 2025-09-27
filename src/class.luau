@@ -107,26 +107,28 @@ function class.constructor(name: string)
 	return unconstructed[name]
 end
 
-function class.import(importing: table) class.argumentCheck({importing, "table"})
+function class.import(importing: table?) class.argumentCheck({importing, "table?"})
 	local final = getfenv(2)
 	final["new"] = class.constructor
 	
-	for iteration, value in ipairs(importing) do
-		local importString, name = value, nil
-		if typeof(value) == "table" then
-			importString = value[1]
-			name = value[2]
+	if importing ~= nil then
+		for iteration, value in ipairs(importing) do
+			local importString, name = value, nil
+			if typeof(value) == "table" then
+				importString = value[1]
+				name = value[2]
+			end
+
+			local import = string.match(importString, "^%a%.?[A-z.]*$")
+			class.assert(import, "import_malformed", iteration, importString)
+			class.assert(class.classes[import], "import_unregistered", iteration, import)
+
+			if name == nil then
+				name = string.match(import, "[A-z]+$")
+			end
+			class.assert(final[name] == nil, "import_already_exists", import, name)
+			final[name] = class.classes[import]
 		end
-		
-		local import = string.match(importString, "^%a%.?[A-z.]*$")
-		class.assert(import, "import_malformed", iteration, importString)
-		class.assert(class.classes[import], "import_unregistered", iteration, import)
-		
-		if name == nil then
-			name = string.match(import, "[A-z]+$")
-		end
-		class.assert(final[name] == nil, "import_already_exists", import, name)
-		final[name] = class.classes[import]
 	end
 	
 	setfenv(2, final)
@@ -270,8 +272,6 @@ function class.create(path: string, modifiers: { any }, contents: { any }, exten
 		elseif valueModifiers.public then
 			root.public[name] = rawValue
 			root.map[name] = "public"
-			
-			root.map[name] = "public"
 		end
 	end
 	
@@ -301,10 +301,17 @@ function class.create(path: string, modifiers: { any }, contents: { any }, exten
 			
 			if typeof(value) == "function" then
 				return function(funcSelf, ...)
+					local returnValue
 					if funcSelf == self then
-						return value(newUserdata, ...)
+						returnValue = value(newUserdata, ...)
 					else
-						return value(newUserdata, funcSelf, ...)
+						returnValue = value(newUserdata, funcSelf, ...)
+					end
+					
+					if returnValue == newUserdata then
+						return mimicUserdata
+					else
+						return returnValue
 					end
 				end
 			end
